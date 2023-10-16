@@ -200,3 +200,4 @@ eval "$(oh-my-posh init zsh --config $HOME/.dotfiles/sweeney.omp.json)"
 
 export BAT_THEME="Catppuccin-mocha"
 
+export PATH="$(brew --prefix llvm)/bin/:$PATH"
