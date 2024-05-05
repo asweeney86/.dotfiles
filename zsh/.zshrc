@@ -68,9 +68,16 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git vi-mode docker docker-compose fzf asdf colored-man-pages)
+#
 
+ZVM_VI_ESCAPE_BINDKEY=jj
+#export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+#export FZF_BASE="/opt/homebrew/opt/fzf"
+
+plugins=(zsh-vi-mode fzf git docker docker-compose asdf colored-man-pages)
 source $ZSH/oh-my-zsh.sh
+
+zvm_after_init_commands+=('eval "$(fzf --zsh)"')
 
 # User configuration
 
@@ -99,14 +106,15 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 export EDITOR=nvim
-#source $HOME/.cargo/env
 export PATH="/usr/local/bin:$PATH"
 export PATH=$HOME/local/bin:$PATH
 export PATH="${PATH}:${HOME}/.krew/bin"
 export PATH="/Users/asweeney/dev/scope3/scripts/:$PATH"
 
-# NVM
 
+
+
+# NVM
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
@@ -121,9 +129,9 @@ squarize() {
     convert $pic -gravity center -extent "${new_dim}x${new_dim}" $pic
 }
 
-# FZF
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
+    eval "$(oh-my-posh init zsh --config $HOME/.dotfiles/sweeney.omp.json)"
+fi
 
 
 # Jira helper functions
@@ -139,16 +147,14 @@ PROMPT='$(kube_ps1)'$PROMPT
 KUBE_PS1_SYMBOL_DEFAULT="ﴱ "
 kubeoff
 
-alias brewup="brew update && brew upgrade && brew cleanup"
-alias vim='nvim'
 
-b64d() { echo -n "$1" | base64 --decode  }
-b64e() { echo -n "$1" | base64 | tee /dev/tty | pbcopy  }
 
 
 # The next line updates PATH for Netlify's Git Credential Helper.
 #source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-source <(helm completion zsh)
+if [ -z helm ]; then
+    source <(helm completion zsh)
+fi
 
 # NPM completeion
 source <(npm completion)
@@ -158,15 +164,13 @@ export TFENV_ARCH=arm64
 
 
 # Make Docker work on M1
-export DOCKER_BUILDKIT=1 # Buildkit is required for multi platform builds
-export COMPOSE_DOCKER_CLI_BUILD=1  # CLI instead of docker-compose python wrapper
-export DOCKER_DEFAULT_PLATFORM=linux/arm64 # Set default build platform instead of sepcifying in dockerfile
+#export DOCKER_BUILDKIT=1 # Buildkit is required for multi platform builds
+#export COMPOSE_DOCKER_CLI_BUILD=1  # CLI instead of docker-compose python wrapper
+#export DOCKER_DEFAULT_PLATFORM=linux/arm64 # Set default build platform instead of sepcifying in dockerfile
 
 alias adsON="networksetup -setdnsservers Wi-Fi 1.1.1.1"
 alias adsOFF="networksetup -setdnsservers Wi-Fi Empty"
 alias adsStatus="networksetup -getdnsservers Wi-Fi"
-
-fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
 
 # check if .zcompdump exists if so remove and reinit compinit
 if [ -f ~/.zcompdump ]; then
@@ -185,19 +189,40 @@ fi
 #alias jira_nobody="jira issue list -ax --created week"
 alias icat="kitty +kitten icat"
 
-eval "$(github-copilot-cli alias -- "$0")"
-
-source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
-source "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
-source "$(brew --prefix asdf)/libexec/asdf.sh"
-
-
-if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh)"
+if [ -z github-copilot-cli ]; then
+    eval "$(github-copilot-cli alias -- "$0")"
 fi
 
-eval "$(oh-my-posh init zsh --config $HOME/.dotfiles/sweeney.omp.json)"
+include () {
+    [[ -f "$1" ]] && source "$1"
+}
+
+
+include "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+include "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
+include "$(brew --prefix asdf)/libexec/asdf.sh"
+
+
 
 export BAT_THEME="Catppuccin-mocha"
 
 export PATH="$(brew --prefix llvm)/bin/:$PATH"
+export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias vim='nvim'
+
+b64d() { echo -n "$1" | base64 --decode  }
+b64e() { echo -n "$1" | base64 | tee /dev/tty | pbcopy  }
+
+fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
+
+#[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+eval "$(fzf --zsh)"
