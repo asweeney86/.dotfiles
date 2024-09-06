@@ -207,6 +207,7 @@ return {
         terraformls = {},
         dockerls = {},
         lua_ls = {},
+        denols = {},
         omnisharp = {
           enable_roslyn_analyzers = true,
         },
