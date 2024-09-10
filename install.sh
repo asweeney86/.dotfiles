@@ -23,6 +23,13 @@ else
     echo "❌ Oh-my-zsh already exists. skipping setup"
 fi
 
+echo "Linking .zshrc"
+if [ ! -f ~/.zshrc ]; then
+    ln -s ~/.dotfiles/zsh/.zshrc .zshrc
+else
+    echo "❌ .zshrc already exists. skipping setup"
+fi
+
 # install nodejs via asdf
 echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -40,10 +47,15 @@ else
     echo "❌ Tmux already exists. skipping setup"
 fi
 
+if [ ! -f ~/.tmux.conf ]; then
+    ln -s $SCRIPT_DIR/tmux/.tmux.conf ~/.tmux.conf
+else
+    echo "❌ tmux.conf already exists. skipping setup"
+fi
+
 echo "📦 Installing tmux tpm"
 if [ ! -d ~/.tmux/plugins/tpm ]; then
     git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm && ~/.tmux/plugins/tpm/bin/install_plugins
-
 else
     echo "❌ Tpm already exists. skipping setup"
 fi
@@ -51,11 +63,18 @@ fi
 echo "📦 Configuring neovim"
 # chcek to see if neovim configu already exists
 if [ ! -d ~/.config/nvim ]; then
+    echo "$SCRIPT_DIR/nvim"
     ln -s $SCRIPT_DIR/nvim ~/.config/nvim
 else
     echo "❌ neovim config already exists. skipping setup"
 fi
 
-echo "👉 Being Lazy... kitty needs to be configured manually"
+echo "Configuring Kitty"
+
+if [ ! -d ~/.config/kitty ]; then
+    ln -s $SCRIPT_DIR/kitty ~/.config/kitty
+else
+    echo "❌ kitty config already exists. skipping setup"
+fi
 
 echo "🏁 Setup complete! 🏁"
