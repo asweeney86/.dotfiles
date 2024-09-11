@@ -106,12 +106,12 @@ zvm_after_init_commands+=('eval "$(fzf --zsh)"')
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 export EDITOR=nvim
+
 export PATH="/usr/local/bin:$PATH"
 export PATH=$HOME/local/bin:$PATH
 export PATH="${PATH}:${HOME}/.krew/bin"
 export PATH="/Users/asweeney/dev/scope3/scripts/:$PATH"
-
-
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
 
 # NVM
@@ -146,8 +146,6 @@ source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
 PROMPT='$(kube_ps1)'$PROMPT
 KUBE_PS1_SYMBOL_DEFAULT="ﴱ "
 kubeoff
-
-
 
 
 # The next line updates PATH for Netlify's Git Credential Helper.
@@ -201,8 +199,6 @@ include () {
 include "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
 include "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
 include "$(brew --prefix asdf)/libexec/asdf.sh"
-
-
 
 export BAT_THEME="Catppuccin-mocha"
 
