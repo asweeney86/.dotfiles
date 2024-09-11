@@ -44,8 +44,19 @@ asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
 asdf install nodejs latest
 asdf global nodejs latest
 
+npm install -g neovim
+
 echo "📦 Installing asdf python"
 asdf plugin-add python
+asdf install python latest
+asdf global python latest
+pip install neovim
+
+echo "📦 Installing asdf ruby"
+asdf plugin add ruby
+asdf install ruby latest
+asdf global ruby latest
+gem install neovim
 
 echo "📦 Configuring tmux"
 # check to see if tpm already exists
