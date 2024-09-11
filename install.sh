@@ -23,6 +23,14 @@ else
     echo "❌ Oh-my-zsh already exists. skipping setup"
 fi
 
+echo "📦 Installing custom zsh-vi-mode"
+if [ ! -d ~/.oh-my-zsh/custom/plugins/zsh-vi-mode ]; then
+    git clone https://github.com/jeffreytse/zsh-vi-mode \
+        ~/.oh-my-zsh/custom/plugins/zsh-vi-mode
+else
+    echo "❌ zsh-vi-mode already exists. skipping setup"
+fi
+
 echo "Linking .zshrc"
 if [ ! -f ~/.zshrc ]; then
     ln -s ~/.dotfiles/zsh/.zshrc .zshrc
