@@ -91,17 +91,10 @@ return {
 
       ---@type lspconfig.options
       servers = {
-        ts_ls = {},
-        pyright = {},
-        solargraph = {},
-        terraformls = {},
-        dockerls = {},
-        lua_ls = {},
         denols = {},
         omnisharp = {
           enable_roslyn_analyzers = true,
         },
-        docker_compose_language_service = {},
         clangd = {
           keys = {
             { "<leader>cR", "<cmd>ClangdSwitchSourceHeader<cr>", desc = "Switch Source/Header (C/C++)" },
