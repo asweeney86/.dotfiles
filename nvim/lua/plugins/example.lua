@@ -10,12 +10,6 @@
 -- * override the configuration of LazyVim plugins
 return {
 
-  {
-    "Saecki/crates.nvim",
-    event = { "BufRead Cargo.toml" },
-    config = true,
-  },
-
   -- change trouble config
   {
     "folke/trouble.nvim",
