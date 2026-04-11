@@ -97,7 +97,6 @@ return {
 
       ---@type lspconfig.options
       servers = {
-        jdtls = {},
         ts_ls = {},
         pyright = {},
         solargraph = {},
@@ -193,9 +192,6 @@ return {
       -- return true if you don't want this server to be setup with lspconfig
       ---@type table<string, fun(server:string, opts:_.lspconfig.options):boolean?>
       setup = {
-        jdtls = function()
-          return true -- avoid duplicate servers
-        end,
         clangd = function(_, opts)
           local clangd_ext_opts = LazyVim.opts("clangd_extensions.nvim")
           require("clangd_extensions").setup(vim.tbl_deep_extend("force", clangd_ext_opts or {}, { server = opts }))
