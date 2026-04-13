@@ -74,7 +74,9 @@ ZVM_VI_ESCAPE_BINDKEY=jj
 #export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 #export FZF_BASE="/opt/homebrew/opt/fzf"
 
-plugins=(zsh-vi-mode fzf git docker docker-compose asdf colored-man-pages)
+# Trimmed plugins for speed (removed: docker-compose, asdf [loaded manually], colored-man-pages, colorize)
+plugins=(zsh-vi-mode fzf git docker)
+ZSH_DISABLE_COMPFIX=true  # Skip compaudit for faster startup
 source $ZSH/oh-my-zsh.sh
 
 zvm_after_init_commands+=('eval "$(fzf --zsh)"')
@@ -110,14 +112,20 @@ export EDITOR=nvim
 export PATH="/usr/local/bin:$PATH"
 export PATH=$HOME/local/bin:$PATH
 export PATH="${PATH}:${HOME}/.krew/bin"
-export PATH="/Users/asweeney/dev/scope3/scripts/:$PATH"
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
 
-# NVM
+# NVM (lazy-loaded)
 export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+nvm() {
+  unset -f nvm node npm npx
+  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+  nvm "$@"
+}
+node() { nvm; node "$@"; }
+npm() { nvm; npm "$@"; }
+npx() { nvm; npx "$@"; }
 
 # Make a picture a square
 squarize() {
@@ -134,13 +142,10 @@ if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
 fi
 
 
-# Jira helper functions
-# source ~/local/bin/jira.sh
-
-# Kubectl
-source <(kubectl completion zsh)
+# Kubectl (cached completion for speed)
+fpath=(~/.zsh/completions $fpath)
+source ~/.zsh/completions/_kubectl
 alias k="kubectl"
-#alias k="kubecolor"
 complete -F __start_kubectl k
 source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
 PROMPT='$(kube_ps1)'$PROMPT
@@ -150,44 +155,25 @@ kubeoff
 
 # The next line updates PATH for Netlify's Git Credential Helper.
 #source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-if [ -z helm ]; then
+if command -v helm &>/dev/null; then
     source <(helm completion zsh)
 fi
 
-# NPM completeion
-source <(npm completion)
+# NPM completion (cached for speed)
+source ~/.zsh/completions/_npm
 
 # Manually set arch
 export TFENV_ARCH=arm64
 
 
-# Make Docker work on M1
-#export DOCKER_BUILDKIT=1 # Buildkit is required for multi platform builds
-#export COMPOSE_DOCKER_CLI_BUILD=1  # CLI instead of docker-compose python wrapper
-#export DOCKER_DEFAULT_PLATFORM=linux/arm64 # Set default build platform instead of sepcifying in dockerfile
-
 alias adsON="networksetup -setdnsservers Wi-Fi 1.1.1.1"
 alias adsOFF="networksetup -setdnsservers Wi-Fi Empty"
 alias adsStatus="networksetup -getdnsservers Wi-Fi"
 
-# check if .zcompdump exists if so remove and reinit compinit
-if [ -f ~/.zcompdump ]; then
-  rm -f "$HOME/.zcompdump"
-  compinit
-fi
 
-#if command -v pyenv 1>/dev/null 2>&1; then
-#  eval "$(pyenv init -)"
-#fi
-
-#if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
-
-#export JIRA_API_TOKEN=''
-#alias jira_me="jira issue list -a$(jira me) -s~Done"
-#alias jira_nobody="jira issue list -ax --created week"
 alias icat="kitty +kitten icat"
 
-if [ -z github-copilot-cli ]; then
+if command -v github-copilot-cli &>/dev/null; then
     eval "$(github-copilot-cli alias -- "$0")"
 fi
 
@@ -195,20 +181,31 @@ include () {
     [[ -f "$1" ]] && source "$1"
 }
 
+# Cache brew prefix to avoid repeated slow calls
+HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 
-include "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
-include "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
-include "$(brew --prefix asdf)/libexec/asdf.sh"
+include "$HOMEBREW_PREFIX/share/google-cloud-sdk/path.zsh.inc"
+include "$HOMEBREW_PREFIX/share/google-cloud-sdk/completion.zsh.inc"
+include "$HOMEBREW_PREFIX/opt/asdf/libexec/asdf.sh"
+export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 
 export BAT_THEME="Catppuccin-mocha"
 
-export PATH="$(brew --prefix llvm)/bin/:$PATH"
+export PATH="$HOMEBREW_PREFIX/opt/llvm/bin/:$PATH"
 export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
 
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+# SDKMAN (lazy-loaded for speed - only loads when you use sdk/java/gradle/maven)
 export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk() {
+  unset -f sdk java gradle maven mvn
+  [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+  sdk "$@"
+}
+java() { sdk; java "$@"; }
+gradle() { sdk; gradle "$@"; }
+maven() { sdk; maven "$@"; }
+mvn() { sdk; mvn "$@"; }
 
 
 alias brewup="brew update && brew upgrade && brew cleanup"
@@ -219,6 +216,5 @@ b64e() { echo -n "$1" | base64 | tee /dev/tty | pbcopy  }
 
 fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
 
-#[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-eval "$(fzf --zsh)"
+# Private env vars, API keys, and work-specific config (not tracked by git)
+include "$HOME/.dotfiles/zsh/private/.env.zsh"
