@@ -19,3 +19,5 @@ vim.opt.undofile = true
 
 vim.opt.termguicolors = true
 vim.opt.colorcolumn = "80"
+
+vim.g.loaded_perl_provider = 0
