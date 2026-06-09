@@ -143,14 +143,18 @@ fi
 
 
 # Kubectl (cached completion for speed)
-fpath=(~/.zsh/completions $fpath)
-source ~/.zsh/completions/_kubectl
-alias k="kubectl"
-complete -F __start_kubectl k
-source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
-PROMPT='$(kube_ps1)'$PROMPT
-KUBE_PS1_SYMBOL_DEFAULT="ﴱ "
-kubeoff
+if command -v kubectl &>/dev/null; then
+    fpath=(~/.zsh/completions $fpath)
+    [[ -f ~/.zsh/completions/_kubectl ]] && source ~/.zsh/completions/_kubectl
+    alias k="kubectl"
+    complete -F __start_kubectl k
+fi
+if [[ -f "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh" ]]; then
+    source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
+    PROMPT='$(kube_ps1)'$PROMPT
+    KUBE_PS1_SYMBOL_DEFAULT="ﴱ "
+    kubeoff
+fi
 
 
 # The next line updates PATH for Netlify's Git Credential Helper.
@@ -159,8 +163,10 @@ if command -v helm &>/dev/null; then
     source <(helm completion zsh)
 fi
 
-# NPM completion (cached for speed)
-source ~/.zsh/completions/_npm
+# NPM completion
+if command -v npm &>/dev/null; then
+    eval "$(npm completion)"
+fi
 
 # Manually set arch
 export TFENV_ARCH=arm64
@@ -186,7 +192,13 @@ HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/path.zsh.inc"
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/completion.zsh.inc"
-include "$HOMEBREW_PREFIX/opt/asdf/libexec/asdf.sh"
+
+# asdf — source the right init script per OS, then add shims to PATH
+if [[ "$(uname)" == "Darwin" ]]; then
+    include "$HOMEBREW_PREFIX/opt/asdf/libexec/asdf.sh"
+else
+    include "$HOME/.asdf/asdf.sh"
+fi
 export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 
 export BAT_THEME="Catppuccin-mocha"
@@ -194,6 +206,7 @@ export BAT_THEME="Catppuccin-mocha"
 export PATH="$HOMEBREW_PREFIX/opt/llvm/bin/:$PATH"
 export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 # SDKMAN (lazy-loaded for speed - only loads when you use sdk/java/gradle/maven)
 export SDKMAN_DIR="$HOME/.sdkman"
@@ -218,3 +231,8 @@ fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
 
 # Private env vars, API keys, and work-specific config (not tracked by git)
 include "$HOME/.dotfiles/zsh/private/.env.zsh"
+
+# Fall back to xterm-256color if the current TERM has no terminfo entry (e.g. xterm-ghostty on remote hosts)
+if [[ -n "$TERM" ]] && ! infocmp "$TERM" &>/dev/null; then
+  export TERM=xterm-256color
+fi

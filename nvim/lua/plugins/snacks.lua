@@ -7,6 +7,8 @@ return {
           header = [[]],
         },
       },
+      -- image rendering requires kitty/wezterm/ghostty; disable on headless Linux
+      image = { enabled = false },
     },
   },
 }
