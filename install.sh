@@ -19,6 +19,7 @@ if [[ "$OS" == "Darwin" ]]; then
     fi
     echo "📦 Installing brew packages"
     brew bundle install --file=Brewfile
+    export PATH="$HOME/.asdf/shims:$PATH"
 
 elif [[ "$OS" == "Linux" ]]; then
     echo "📦 Installing apt packages"
@@ -49,6 +50,7 @@ elif [[ "$OS" == "Linux" ]]; then
         libssl-dev \
         libclang-dev \
         libyaml-dev \
+        libmsgpack-dev \
         llvm \
         luarocks \
         nmap \
@@ -72,36 +74,48 @@ elif [[ "$OS" == "Linux" ]]; then
     NVIM_CURRENT=$(nvim --version 2>/dev/null | awk 'NR==1{print $2}' | tr -d 'v')
     if [[ "$NVIM_CURRENT" != "$NVIM_LATEST" ]]; then
         echo "📦 Installing neovim v${NVIM_LATEST} from GitHub releases (current: ${NVIM_CURRENT:-none})"
-        curl -fsSLo /tmp/nvim-linux-x86_64.tar.gz \
-            "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
-        sudo tar xzf /tmp/nvim-linux-x86_64.tar.gz -C /usr/local --strip-components=1
-        rm /tmp/nvim-linux-x86_64.tar.gz
+        ARCH="$(uname -m)"
+        case "$ARCH" in
+            x86_64)        NVIM_ARCH="x86_64" ;;
+            aarch64|arm64) NVIM_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+        curl -fsSLo /tmp/nvim-linux.tar.gz \
+            "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.tar.gz"
+        sudo tar xzf /tmp/nvim-linux.tar.gz -C /usr/local --strip-components=1
+        rm /tmp/nvim-linux.tar.gz
     else
         echo "  neovim v${NVIM_CURRENT} is up to date"
     fi
 
-    # asdf v0.14.x (bash-based) — v0.15+ is a Go binary with a different setup
-    ASDF_DIR="$HOME/.asdf"
     if ! command -v asdf &>/dev/null; then
         echo "📦 Installing asdf"
-        # Remove a stale clone that lacks asdf.sh (e.g. a Go-based v0.15+ clone)
-        if [[ -d "$ASDF_DIR" && ! -f "$ASDF_DIR/asdf.sh" ]]; then
-            rm -rf "$ASDF_DIR"
-        fi
-        if [[ ! -d "$ASDF_DIR" ]]; then
-            git clone https://github.com/asdf-vm/asdf.git "$ASDF_DIR" --branch v0.14.1
-        fi
+        ARCH="$(uname -m)"
+        case "$ARCH" in
+            x86_64)        ASDF_ARCH="amd64" ;;
+            aarch64|arm64) ASDF_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+        ASDF_TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+            https://github.com/asdf-vm/asdf/releases/latest | sed 's|.*/tag/||')
+        curl -fsSL "https://github.com/asdf-vm/asdf/releases/download/${ASDF_TAG}/asdf-${ASDF_TAG}-linux-${ASDF_ARCH}.tar.gz" \
+            | sudo tar xz -C /usr/local/bin
     fi
-    # shellcheck disable=SC1091
-    . "$ASDF_DIR/asdf.sh"
+    export PATH="$HOME/.asdf/shims:$PATH"
 
     # lazygit
     if ! command -v lazygit &>/dev/null; then
         echo "📦 Installing lazygit"
         LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" \
             | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+        ARCH="$(uname -m)"
+        case "$ARCH" in
+            x86_64)        LG_ARCH="x86_64" ;;
+            aarch64|arm64) LG_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
         curl -Lo /tmp/lazygit.tar.gz \
-            "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+            "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_${LG_ARCH}.tar.gz"
         tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
         sudo install /tmp/lazygit /usr/local/bin/lazygit
     fi
@@ -128,7 +142,8 @@ elif [[ "$OS" == "Linux" ]]; then
     fi
 
     # fd — apt ships 8.3.1 but Snacks.picker requires >=8.4; install latest via cargo
-    if ! command -v fd &>/dev/null || [[ "$(fd --version 2>/dev/null | awk '{print $2}')" < "8.4" ]]; then
+    if ! command -v fd &>/dev/null || \
+        [[ "$(fd --version 2>/dev/null | awk '{split($2,a,"."); print a[1]*1000+a[2]}')" -lt 8004 ]]; then
         echo "📦 Installing fd via cargo"
         cargo install fd-find
     fi
@@ -153,7 +168,13 @@ elif [[ "$OS" == "Linux" ]]; then
     # awscli v2
     if ! command -v aws &>/dev/null; then
         echo "📦 Installing awscli"
-        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+        ARCH="$(uname -m)"
+        case "$ARCH" in
+            x86_64)        AWS_ARCH="x86_64" ;;
+            aarch64|arm64) AWS_ARCH="aarch64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o /tmp/awscliv2.zip
         unzip -q /tmp/awscliv2.zip -d /tmp
         sudo /tmp/aws/install
         rm -rf /tmp/aws /tmp/awscliv2.zip
@@ -164,13 +185,7 @@ elif [[ "$OS" == "Linux" ]]; then
         echo "📦 Installing go via asdf"
         asdf plugin add golang https://github.com/asdf-community/asdf-golang.git || true
         asdf install golang latest
-        asdf global golang latest
-    fi
-
-    # diff-so-fancy
-    if ! command -v diff-so-fancy &>/dev/null; then
-        echo "📦 Installing diff-so-fancy"
-        sudo npm install -g diff-so-fancy || true   # npm may not exist yet; asdf nodejs installed below
+        asdf set --home golang latest
     fi
 
 else
@@ -210,36 +225,43 @@ else
 fi
 
 echo "🔗 Linking .zshrc"
-if [[ ! -f ~/.zshrc ]]; then
-    ln -s "$SCRIPT_DIR/zsh/.zshrc" ~/.zshrc
-else
-    echo "  ~/.zshrc already exists, skipping"
-fi
+ln -sf "$SCRIPT_DIR/zsh/.zshrc" ~/.zshrc
 
 # ── asdf language runtimes ────────────────────────────────────────────────────
 
 echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
 asdf install nodejs latest
-asdf global nodejs latest
+asdf set --home nodejs latest
 npm install -g neovim
+
+if [[ "$OS" == "Linux" ]]; then
+    if ! command -v diff-so-fancy &>/dev/null; then
+        echo "📦 Installing diff-so-fancy"
+        npm install -g diff-so-fancy
+    fi
+fi
 
 echo "📦 Installing asdf python"
 asdf plugin add python https://github.com/asdf-community/asdf-python.git 2>/dev/null || true
 # Use latest stable 3.13.x — filter out free-threaded (t-suffix) builds
-PYTHON_VERSION=$(asdf list-all python | grep -E "^3\.13\.[0-9]+$" | tail -1)
+PYTHON_VERSION=$(asdf list all python | grep -E "^3\.13\.[0-9]+$" | tail -1)
 asdf install python "$PYTHON_VERSION"
-asdf global python "$PYTHON_VERSION"
+asdf set --home python "$PYTHON_VERSION"
 pip install neovim
 
 echo "📦 Installing asdf ruby"
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git 2>/dev/null || true
 asdf install ruby latest
-asdf global ruby latest
+asdf set --home ruby latest
 gem install neovim
 
 echo "📦 Installing perl neovim bindings"
-cpanm -n Neovim::Ext
+if [[ "$OS" == "Darwin" ]]; then
+    "$(brew --prefix perl)/bin/cpanm" -n Neovim::Ext || echo "  Warning: Neovim::Ext install failed (optional)"
+else
+    cpanm -n Neovim::Ext || echo "  Warning: Neovim::Ext install failed (optional)"
+fi
 
 # ── tmux ──────────────────────────────────────────────────────────────────────
 

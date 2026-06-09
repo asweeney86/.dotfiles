@@ -8,7 +8,7 @@ export ZSH="$HOME/.oh-my-zsh"
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
+ZSH_THEME=""
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -109,23 +109,14 @@ zvm_after_init_commands+=('eval "$(fzf --zsh)"')
 
 export EDITOR=nvim
 
+HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
+
 export PATH="/usr/local/bin:$PATH"
-export PATH=$HOME/local/bin:$PATH
+export PATH="$HOME/local/bin:$PATH"
 export PATH="${PATH}:${HOME}/.krew/bin"
-export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
+export PATH="${HOMEBREW_PREFIX}/opt/openjdk/bin:$PATH"
 
 
-# NVM (lazy-loaded)
-export NVM_DIR="$HOME/.nvm"
-nvm() {
-  unset -f nvm node npm npx
-  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
-  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
-  nvm "$@"
-}
-node() { nvm; node "$@"; }
-npm() { nvm; npm "$@"; }
-npx() { nvm; npx "$@"; }
 
 # Make a picture a square
 squarize() {
@@ -149,24 +140,18 @@ if command -v kubectl &>/dev/null; then
     alias k="kubectl"
     complete -F __start_kubectl k
 fi
-if [[ -f "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh" ]]; then
-    source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
+if [[ -f "${HOMEBREW_PREFIX}/opt/kube-ps1/share/kube-ps1.sh" ]]; then
+    source "${HOMEBREW_PREFIX}/opt/kube-ps1/share/kube-ps1.sh"
     PROMPT='$(kube_ps1)'$PROMPT
     KUBE_PS1_SYMBOL_DEFAULT="ﴱ "
     kubeoff
 fi
 
 
-# The next line updates PATH for Netlify's Git Credential Helper.
-#source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
 if command -v helm &>/dev/null; then
     source <(helm completion zsh)
 fi
 
-# NPM completion
-if command -v npm &>/dev/null; then
-    eval "$(npm completion)"
-fi
 
 # Manually set arch
 export TFENV_ARCH=arm64
@@ -187,9 +172,6 @@ include () {
     [[ -f "$1" ]] && source "$1"
 }
 
-# Cache brew prefix to avoid repeated slow calls
-HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
-
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/path.zsh.inc"
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/completion.zsh.inc"
 
@@ -201,10 +183,15 @@ else
 fi
 export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 
+# NPM completion (must be after asdf shims are in PATH)
+if command -v npm &>/dev/null; then
+    eval "$(npm completion)"
+fi
+
 export BAT_THEME="Catppuccin-mocha"
 
-export PATH="$HOMEBREW_PREFIX/opt/llvm/bin/:$PATH"
-export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="${HOMEBREW_PREFIX}/opt/llvm/bin:$PATH"
+export PATH="${HOMEBREW_PREFIX}/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -227,7 +214,7 @@ alias vim='nvim'
 b64d() { echo -n "$1" | base64 --decode  }
 b64e() { echo -n "$1" | base64 | tee /dev/tty | pbcopy  }
 
-fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
+fpath=("${HOMEBREW_PREFIX}/share/zsh/site-functions" $fpath)
 
 # Private env vars, API keys, and work-specific config (not tracked by git)
 include "$HOME/.dotfiles/zsh/private/.env.zsh"
