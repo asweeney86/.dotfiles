@@ -21,6 +21,22 @@ asdf_global() {
     fi
 }
 
+# Symlink $1 -> $2; replace a stale file/dir by moving it to $2.bak
+link_path() {
+    local src="$1" dest="$2"
+    if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
+        echo "  $dest already linked, skipping"
+        return
+    fi
+    mkdir -p "$(dirname "$dest")"
+    if [[ -e "$dest" || -L "$dest" ]]; then
+        echo "  backing up existing $dest -> $dest.bak"
+        rm -rf "$dest.bak"
+        mv "$dest" "$dest.bak"
+    fi
+    ln -s "$src" "$dest"
+}
+
 # ── Package installation ──────────────────────────────────────────────────────
 
 if [[ "$OS" == "Darwin" ]]; then
@@ -171,7 +187,8 @@ elif [[ "$OS" == "Linux" ]]; then
     # neovim node provider — install against the system node that nvim resolves
     # (not the asdf-managed one, which may not be in nvim's PATH)
     SYSTEM_NPM="$(command -v npm || true)"
-    if [[ -n "$SYSTEM_NPM" ]] && [[ "$SYSTEM_NPM" != *".asdf"* ]]; then
+    if [[ -n "$SYSTEM_NPM" ]] && [[ "$SYSTEM_NPM" != *".asdf"* ]] \
+        && ! "$SYSTEM_NPM" ls -g --depth=0 neovim &>/dev/null; then
         echo "📦 Installing neovim npm package"
         sudo "$SYSTEM_NPM" install -g neovim
     fi
@@ -235,6 +252,15 @@ else
     echo "  zsh-vi-mode already exists, skipping"
 fi
 
+# Private env file (git-ignored): create it if missing so .zshrc always has something to source
+PRIVATE_ENV="$SCRIPT_DIR/zsh/private/.env.zsh"
+if [[ ! -f "$PRIVATE_ENV" ]]; then
+    echo "📝 Creating $PRIVATE_ENV"
+    mkdir -p "$(dirname "$PRIVATE_ENV")"
+    printf '# Private env vars, API keys, work config. Git-ignored: never commit this file.\n' > "$PRIVATE_ENV"
+    chmod 600 "$PRIVATE_ENV"
+fi
+
 echo "🔗 Linking .zshrc"
 ln -sf "$SCRIPT_DIR/zsh/.zshrc" ~/.zshrc
 
@@ -244,7 +270,9 @@ echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
 asdf install nodejs latest
 asdf_global nodejs latest
-npm install -g neovim
+if ! npm ls -g --depth=0 neovim &>/dev/null; then
+    npm install -g neovim
+fi
 
 if [[ "$OS" == "Linux" ]]; then
     if ! command -v diff-so-fancy &>/dev/null; then
@@ -257,18 +285,26 @@ echo "📦 Installing asdf python"
 asdf plugin add python https://github.com/asdf-community/asdf-python.git 2>/dev/null || true
 # Use latest stable 3.13.x — filter out free-threaded (t-suffix) builds
 PYTHON_VERSION=$(asdf list all python | grep -E "^3\.13\.[0-9]+$" | tail -1)
-asdf install python "$PYTHON_VERSION"
+if ! asdf list python 2>/dev/null | grep -q "$PYTHON_VERSION"; then
+    asdf install python "$PYTHON_VERSION"
+fi
 asdf_global python "$PYTHON_VERSION"
-pip install neovim
+if ! pip show neovim &>/dev/null; then
+    pip install neovim
+fi
 
 echo "📦 Installing asdf ruby"
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git 2>/dev/null || true
 asdf install ruby latest
 asdf_global ruby latest
-gem install neovim
+if ! gem list -i neovim &>/dev/null; then
+    gem install neovim
+fi
 
 echo "📦 Installing perl neovim bindings"
-if [[ "$OS" == "Darwin" ]]; then
+if perl -MNeovim::Ext -e1 &>/dev/null; then
+    echo "  Neovim::Ext already installed, skipping"
+elif [[ "$OS" == "Darwin" ]]; then
     "$(brew --prefix perl)/bin/cpanm" -n Neovim::Ext || echo "  Warning: Neovim::Ext install failed (optional)"
 else
     cpanm -n Neovim::Ext || echo "  Warning: Neovim::Ext install failed (optional)"
@@ -277,17 +313,8 @@ fi
 # ── tmux ──────────────────────────────────────────────────────────────────────
 
 echo "📦 Configuring tmux"
-if [[ ! -d ~/.tmux ]]; then
-    ln -s "$SCRIPT_DIR/tmux" ~/.tmux
-else
-    echo "  ~/.tmux already exists, skipping"
-fi
-
-if [[ ! -f ~/.tmux.conf ]]; then
-    ln -s "$SCRIPT_DIR/tmux/.tmux.conf" ~/.tmux.conf
-else
-    echo "  ~/.tmux.conf already exists, skipping"
-fi
+link_path "$SCRIPT_DIR/tmux" ~/.tmux
+link_path "$SCRIPT_DIR/tmux/.tmux.conf" ~/.tmux.conf
 
 echo "📦 Installing tmux tpm"
 if [[ ! -d ~/.tmux/plugins/tpm ]]; then
@@ -300,22 +327,13 @@ fi
 # ── neovim ────────────────────────────────────────────────────────────────────
 
 echo "📦 Configuring neovim"
-if [[ ! -d ~/.config/nvim ]]; then
-    mkdir -p ~/.config
-    ln -s "$SCRIPT_DIR/nvim" ~/.config/nvim
-else
-    echo "  ~/.config/nvim already exists, skipping"
-fi
+link_path "$SCRIPT_DIR/nvim" ~/.config/nvim
 
 # ── kitty (macOS / GUI only) ──────────────────────────────────────────────────
 
 if [[ "$OS" == "Darwin" ]]; then
     echo "📦 Configuring Kitty"
-    if [[ ! -d ~/.config/kitty ]]; then
-        ln -s "$SCRIPT_DIR/kitty" ~/.config/kitty
-    else
-        echo "  ~/.config/kitty already exists, skipping"
-    fi
+    link_path "$SCRIPT_DIR/kitty" ~/.config/kitty
 fi
 
 echo "🏁 Setup complete!"
