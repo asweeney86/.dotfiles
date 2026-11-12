@@ -89,29 +89,40 @@ return {
           keys = {
             { "<leader>cR", "<cmd>ClangdSwitchSourceHeader<cr>", desc = "Switch Source/Header (C/C++)" },
           },
-          root_dir = function(fname)
+          -- Neovim 0.11+ native LSP calls root_dir(bufnr, on_dir) and needs on_dir(root) to be called;
+          -- the old lspconfig `function(fname) return root end` form never attaches the server.
+          root_dir = function(bufnr, on_dir)
+            local util = require("lspconfig.util")
+            local fname = vim.api.nvim_buf_get_name(bufnr)
             -- using a root .clang-format or .clang-tidy file messes up projects, so remove them
-            return require("lspconfig.util").root_pattern(
-              "compile_commands.json",
-              "compile_flags.txt",
-              "configure.ac",
-              ".git"
-            )(fname) or require("lspconfig.util").root_pattern("compile_commands.json", "compile_flags.txt")(
-              fname
-            ) or require("lspconfig.util").find_git_ancestor(fname)
+            local root = util.root_pattern("compile_commands.json", "compile_flags.txt", "configure.ac", ".git")(fname)
+              or util.find_git_ancestor(fname)
+            if root then
+              on_dir(root)
+            end
           end,
           capabilities = {
             offsetEncoding = { "utf-16" },
           },
-          cmd = {
-            "clangd",
-            "--background-index",
-            "--clang-tidy",
-            "--header-insertion=iwyu",
-            "--completion-style=detailed",
-            "--function-arg-placeholders",
-            "--fallback-style=llvm",
-          },
+          -- A project may ship scripts/clangd to run clangd where its dependencies live (ads-cpp keeps
+          -- gRPC/Seastar/protobuf headers inside a container image); otherwise use the local clangd.
+          cmd = function(dispatchers, config)
+            local root = config.root_dir or vim.fn.getcwd()
+            local argv = {
+              "clangd",
+              "--background-index",
+              "--clang-tidy",
+              "--header-insertion=iwyu",
+              "--completion-style=detailed",
+              "--function-arg-placeholders",
+              "--fallback-style=llvm",
+            }
+            local wrapper = root .. "/scripts/clangd"
+            if vim.uv.fs_stat(wrapper) then
+              argv[1] = wrapper
+            end
+            return vim.lsp.rpc.start(argv, dispatchers, { cwd = root })
+          end,
           init_options = {
             usePlaceholders = true,
             completeUnimported = true,
