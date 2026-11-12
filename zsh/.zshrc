@@ -39,7 +39,6 @@ HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin:$PATH"
 export PATH="/usr/local/bin:$PATH"
 export PATH="$HOME/local/bin:$PATH"
-export PATH="${PATH}:${HOME}/.krew/bin"
 export PATH="${HOMEBREW_PREFIX}/opt/openjdk/bin:$PATH"
 
 

@@ -81,7 +81,6 @@ elif [[ "$OS" == "Linux" ]]; then
         llvm \
         luarocks \
         nmap \
-        php \
         ripgrep \
         shellcheck \
         tmux \
