@@ -10,6 +10,17 @@ pushd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
+# asdf v0.16+ renamed `asdf global` to `asdf set --home`
+asdf_global() {
+    local asdf_minor
+    asdf_minor=$(asdf version | sed 's/v\([0-9]*\)\.\([0-9]*\).*/\2/')
+    if [[ "$asdf_minor" -ge 16 ]]; then
+        asdf set --home "$@"
+    else
+        asdf global "$@"
+    fi
+}
+
 # ── Package installation ──────────────────────────────────────────────────────
 
 if [[ "$OS" == "Darwin" ]]; then
@@ -160,7 +171,7 @@ elif [[ "$OS" == "Linux" ]]; then
     # neovim node provider — install against the system node that nvim resolves
     # (not the asdf-managed one, which may not be in nvim's PATH)
     SYSTEM_NPM="$(command -v npm || true)"
-    if [[ -n "$SYSTEM_NPM" ]]; then
+    if [[ -n "$SYSTEM_NPM" ]] && [[ "$SYSTEM_NPM" != *".asdf"* ]]; then
         echo "📦 Installing neovim npm package"
         sudo "$SYSTEM_NPM" install -g neovim
     fi
@@ -185,7 +196,7 @@ elif [[ "$OS" == "Linux" ]]; then
         echo "📦 Installing go via asdf"
         asdf plugin add golang https://github.com/asdf-community/asdf-golang.git || true
         asdf install golang latest
-        asdf set --home golang latest
+        asdf_global golang latest
     fi
 
 else
@@ -232,7 +243,7 @@ ln -sf "$SCRIPT_DIR/zsh/.zshrc" ~/.zshrc
 echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
 asdf install nodejs latest
-asdf set --home nodejs latest
+asdf_global nodejs latest
 npm install -g neovim
 
 if [[ "$OS" == "Linux" ]]; then
@@ -247,13 +258,13 @@ asdf plugin add python https://github.com/asdf-community/asdf-python.git 2>/dev/
 # Use latest stable 3.13.x — filter out free-threaded (t-suffix) builds
 PYTHON_VERSION=$(asdf list all python | grep -E "^3\.13\.[0-9]+$" | tail -1)
 asdf install python "$PYTHON_VERSION"
-asdf set --home python "$PYTHON_VERSION"
+asdf_global python "$PYTHON_VERSION"
 pip install neovim
 
 echo "📦 Installing asdf ruby"
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git 2>/dev/null || true
 asdf install ruby latest
-asdf set --home ruby latest
+asdf_global ruby latest
 gem install neovim
 
 echo "📦 Installing perl neovim bindings"
