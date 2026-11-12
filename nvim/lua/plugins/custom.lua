@@ -209,8 +209,7 @@ return {
     },
   },
 
-  -- Use <tab> for completion and snippets (supertab)
-  -- first: disable default <tab> and <s-tab> behavior in LuaSnip
+  -- disable LuaSnip's default <tab>/<s-tab> mappings
   {
     "L3MON4D3/LuaSnip",
     keys = function()
