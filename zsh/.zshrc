@@ -36,6 +36,7 @@ export EDITOR=nvim
 
 HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 
+export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin:$PATH"
 export PATH="/usr/local/bin:$PATH"
 export PATH="$HOME/local/bin:$PATH"
 export PATH="${PATH}:${HOME}/.krew/bin"
@@ -137,7 +138,7 @@ gradle() { sdk; gradle "$@"; }
 mvn() { sdk; mvn "$@"; }
 
 
-alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewup="brew update && brew upgrade -y && brew cleanup"
 alias vim='nvim'
 
 b64d() { echo -n "$1" | base64 --decode  }
