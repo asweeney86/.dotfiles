@@ -97,7 +97,6 @@ if [[ "$OSTYPE" == darwin* ]]; then
 fi
 
 
-alias icat="kitty +kitten icat"
 
 include () {
     [[ -f "$1" ]] && source "$1"

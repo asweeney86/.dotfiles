@@ -329,11 +329,4 @@ fi
 echo "📦 Configuring neovim"
 link_path "$SCRIPT_DIR/nvim" ~/.config/nvim
 
-# ── kitty (macOS / GUI only) ──────────────────────────────────────────────────
-
-if [[ "$OS" == "Darwin" ]]; then
-    echo "📦 Configuring Kitty"
-    link_path "$SCRIPT_DIR/kitty" ~/.config/kitty
-fi
-
 echo "🏁 Setup complete!"
