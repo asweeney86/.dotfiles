@@ -71,6 +71,8 @@ ZSH_THEME=""
 #
 
 ZVM_VI_ESCAPE_BINDKEY=jj
+# Prefer git-installed fzf (supports `fzf --zsh`) over the old apt one in /usr/bin
+[[ -d $HOME/.fzf/bin ]] && PATH="$HOME/.fzf/bin:${PATH//:$HOME\/.fzf\/bin/}"
 #export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 #export FZF_BASE="/opt/homebrew/opt/fzf"
 
@@ -79,7 +81,12 @@ plugins=(zsh-vi-mode fzf git docker)
 ZSH_DISABLE_COMPFIX=true  # Skip compaudit for faster startup
 source $ZSH/oh-my-zsh.sh
 
-zvm_after_init_commands+=('eval "$(fzf --zsh)"')
+# fzf >= 0.48 supports `fzf --zsh`; fall back to Debian/Ubuntu packaged scripts for older apt versions
+if fzf --zsh &>/dev/null; then
+  zvm_after_init_commands+=('eval "$(fzf --zsh)"')
+elif [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
+  zvm_after_init_commands+=('source /usr/share/doc/fzf/examples/key-bindings.zsh; source /usr/share/doc/fzf/examples/completion.zsh')
+fi
 
 # User configuration
 
