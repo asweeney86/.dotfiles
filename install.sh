@@ -154,18 +154,12 @@ elif [[ "$OS" == "Linux" ]]; then
         curl -s https://ohmyposh.dev/install.sh | bash -s -- -d "$HOME/.local/bin"
     fi
 
-    # rust / cargo (needed for xsv and other cargo-installed tools)
+    # rust / cargo (needed for fd, tree-sitter-cli and other cargo-installed tools)
     if ! command -v cargo &>/dev/null; then
         echo "📦 Installing rust"
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
         # shellcheck disable=SC1091
         . "$HOME/.cargo/env"
-    fi
-
-    # xsv
-    if ! command -v xsv &>/dev/null; then
-        echo "📦 Installing xsv"
-        cargo install xsv
     fi
 
     # fd — apt ships 8.3.1 but Snacks.picker requires >=8.4; install latest via cargo
