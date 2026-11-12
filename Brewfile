@@ -1,4 +1,3 @@
-tap "hashicorp/tap"
 tap "jandedobbeleer/oh-my-posh"
 brew "asdf"
 brew "awscli"
