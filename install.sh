@@ -329,4 +329,9 @@ fi
 echo "📦 Configuring neovim"
 link_path "$SCRIPT_DIR/nvim" ~/.config/nvim
 
+# ── ghostty ───────────────────────────────────────────────────────────────────
+
+echo "📦 Configuring ghostty"
+link_path "$SCRIPT_DIR/ghostty" ~/.config/ghostty
+
 echo "🏁 Setup complete!"
