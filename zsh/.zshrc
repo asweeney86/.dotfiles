@@ -16,7 +16,8 @@ ZVM_VI_ESCAPE_BINDKEY=jj
 #export FZF_BASE="/opt/homebrew/opt/fzf"
 
 # Trimmed plugins for speed
-plugins=(zsh-vi-mode fzf git docker)
+# zsh-syntax-highlighting must stay last
+plugins=(zsh-vi-mode fzf git docker zsh-autosuggestions zsh-syntax-highlighting)
 ZSH_DISABLE_COMPFIX=true  # Skip compaudit for faster startup
 source $ZSH/oh-my-zsh.sh
 
@@ -36,11 +37,38 @@ export EDITOR=nvim
 
 HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 
-export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin:$PATH"
-export PATH="/usr/local/bin:$PATH"
-export PATH="$HOME/local/bin:$PATH"
-export PATH="${HOMEBREW_PREFIX}/opt/openjdk/bin:$PATH"
+# History
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt EXTENDED_HISTORY INC_APPEND_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
 
+# PATH: one block, highest priority first (typeset -U above drops duplicates)
+path=(
+    "$HOME/.local/bin"
+    "$HOME/.cargo/bin"
+    "${HOMEBREW_PREFIX}/opt/gnu-sed/libexec/gnubin"
+    "${HOMEBREW_PREFIX}/opt/llvm/bin"
+    "${ASDF_DATA_DIR:-$HOME/.asdf}/shims"
+    "${HOMEBREW_PREFIX}/opt/openjdk/bin"
+    "$HOME/local/bin"
+    /usr/local/bin
+    "${HOMEBREW_PREFIX}/bin"
+    "${HOMEBREW_PREFIX}/sbin"
+    $path
+)
+
+# Optional tools: each is skipped when not installed
+if (( $+commands[eza] )); then
+    alias ls='eza'
+    alias ll='eza -l --git'
+    alias la='eza -la --git'
+    alias tree='eza --tree'
+fi
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+(( $+commands[direnv] )) && eval "$(direnv hook zsh)"
+# atuin takes over Ctrl-R; load after fzf, which also binds it
+(( $+commands[atuin] )) && zvm_after_init_commands+=('eval "$(atuin init zsh --disable-up-arrow)"')
 
 
 # Make a picture a square
@@ -105,13 +133,12 @@ include () {
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/path.zsh.inc"
 include "$HOMEBREW_PREFIX/share/google-cloud-sdk/completion.zsh.inc"
 
-# asdf — source the right init script per OS, then add shims to PATH
+# asdf — source the right init script per OS (shims are already on PATH above)
 if [[ "$(uname)" == "Darwin" ]]; then
     include "$HOMEBREW_PREFIX/opt/asdf/libexec/asdf.sh"
 else
     include "$HOME/.asdf/asdf.sh"
 fi
-export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 
 # NPM completion (must be after asdf shims are in PATH)
 if command -v npm &>/dev/null; then
@@ -119,11 +146,6 @@ if command -v npm &>/dev/null; then
 fi
 
 export BAT_THEME="Catppuccin-mocha"
-
-export PATH="${HOMEBREW_PREFIX}/opt/llvm/bin:$PATH"
-export PATH="${HOMEBREW_PREFIX}/opt/gnu-sed/libexec/gnubin:$PATH"
-export PATH="$HOME/.cargo/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
 
 # SDKMAN (lazy-loaded for speed - only loads when you use sdk/java/gradle/mvn)
 export SDKMAN_DIR="$HOME/.sdkman"
