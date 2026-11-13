@@ -10,17 +10,6 @@ pushd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
-# asdf v0.16+ renamed `asdf global` to `asdf set --home`
-asdf_global() {
-    local asdf_minor
-    asdf_minor=$(asdf version | sed 's/v\([0-9]*\)\.\([0-9]*\).*/\2/')
-    if [[ "$asdf_minor" -ge 16 ]]; then
-        asdf set --home "$@"
-    else
-        asdf global "$@"
-    fi
-}
-
 # Symlink $1 -> $2; replace a stale file/dir by moving it to $2.bak
 link_path() {
     local src="$1" dest="$2"
@@ -146,6 +135,22 @@ elif [[ "$OS" == "Linux" ]]; then
         sudo install /tmp/lazygit /usr/local/bin/lazygit
     fi
 
+    # delta (git pager; git/config depends on it). Not in Ubuntu 22.04 apt, so use the release .deb
+    if ! command -v delta &>/dev/null; then
+        echo "📦 Installing delta"
+        DELTA_VERSION=$(curl -fsSL "https://api.github.com/repos/dandavison/delta/releases/latest" \
+            | grep '"tag_name"' | sed 's/.*"\([^"]*\)".*/\1/')
+        case "$(dpkg --print-architecture)" in
+            amd64) DELTA_ARCH="amd64" ;;
+            arm64) DELTA_ARCH="arm64" ;;
+            *) echo "Unsupported architecture for delta"; exit 1 ;;
+        esac
+        curl -fsSLo /tmp/delta.deb \
+            "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${DELTA_ARCH}.deb"
+        sudo dpkg -i /tmp/delta.deb
+        rm /tmp/delta.deb
+    fi
+
     # oh-my-posh
     if ! command -v oh-my-posh &>/dev/null; then
         echo "📦 Installing oh-my-posh"
@@ -201,14 +206,6 @@ elif [[ "$OS" == "Linux" ]]; then
         rm -rf /tmp/aws /tmp/awscliv2.zip
     fi
 
-    # go — use asdf so it's version-managed
-    if ! command -v go &>/dev/null; then
-        echo "📦 Installing go via asdf"
-        asdf plugin add golang https://github.com/asdf-community/asdf-golang.git || true
-        asdf install golang latest
-        asdf_global golang latest
-    fi
-
 else
     echo "Unsupported OS: $OS"
     exit 1
@@ -245,6 +242,19 @@ else
     echo "  zsh-vi-mode already exists, skipping"
 fi
 
+for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+    echo "📦 Installing $plugin"
+    if [[ ! -d ~/.oh-my-zsh/custom/plugins/$plugin ]]; then
+        case "$plugin" in
+            zsh-autosuggestions)     repo="zsh-users/zsh-autosuggestions" ;;
+            zsh-syntax-highlighting) repo="zsh-users/zsh-syntax-highlighting" ;;
+        esac
+        git clone "https://github.com/$repo" ~/.oh-my-zsh/custom/plugins/$plugin
+    else
+        echo "  $plugin already exists, skipping"
+    fi
+done
+
 # Private env file (git-ignored): create it if missing so .zshrc always has something to source
 PRIVATE_ENV="$SCRIPT_DIR/zsh/private/.env.zsh"
 if [[ ! -f "$PRIVATE_ENV" ]]; then
@@ -259,37 +269,30 @@ ln -sf "$SCRIPT_DIR/zsh/.zshrc" ~/.zshrc
 
 # ── asdf language runtimes ────────────────────────────────────────────────────
 
+# Versions are pinned in asdf/.tool-versions, linked to ~/.tool-versions
+link_path "$SCRIPT_DIR/asdf/.tool-versions" ~/.tool-versions
+
+echo "📦 Installing asdf golang"
+asdf plugin add golang https://github.com/asdf-community/asdf-golang.git 2>/dev/null || true
+asdf install golang
+
 echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
-asdf install nodejs latest
-asdf_global nodejs latest
+asdf install nodejs
 if ! npm ls -g --depth=0 neovim &>/dev/null; then
     npm install -g neovim
 fi
 
-if [[ "$OS" == "Linux" ]]; then
-    if ! command -v diff-so-fancy &>/dev/null; then
-        echo "📦 Installing diff-so-fancy"
-        npm install -g diff-so-fancy
-    fi
-fi
-
 echo "📦 Installing asdf python"
 asdf plugin add python https://github.com/asdf-community/asdf-python.git 2>/dev/null || true
-# Use latest stable 3.13.x — filter out free-threaded (t-suffix) builds
-PYTHON_VERSION=$(asdf list all python | grep -E "^3\.13\.[0-9]+$" | tail -1)
-if ! asdf list python 2>/dev/null | grep -q "$PYTHON_VERSION"; then
-    asdf install python "$PYTHON_VERSION"
-fi
-asdf_global python "$PYTHON_VERSION"
+asdf install python
 if ! pip show neovim &>/dev/null; then
     pip install neovim
 fi
 
 echo "📦 Installing asdf ruby"
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git 2>/dev/null || true
-asdf install ruby latest
-asdf_global ruby latest
+asdf install ruby
 if ! gem list -i neovim &>/dev/null; then
     gem install neovim
 fi
@@ -326,5 +329,19 @@ link_path "$SCRIPT_DIR/nvim" ~/.config/nvim
 
 echo "📦 Configuring ghostty"
 link_path "$SCRIPT_DIR/ghostty" ~/.config/ghostty
+
+# ── git ───────────────────────────────────────────────────────────────────────
+
+# ~/.gitconfig (identity, Metatron proxy) is left alone; git also reads ~/.config/git/config
+echo "📦 Configuring git"
+link_path "$SCRIPT_DIR/git/config" ~/.config/git/config
+link_path "$SCRIPT_DIR/git/ignore" ~/.config/git/ignore
+
+# ── lazygit ───────────────────────────────────────────────────────────────────
+
+# Config dir differs per OS (~/Library/Application Support on macOS, ~/.config on Linux)
+echo "📦 Configuring lazygit"
+LAZYGIT_CONFIG_DIR="$(lazygit --print-config-dir 2>/dev/null || echo "$HOME/.config/lazygit")"
+link_path "$SCRIPT_DIR/lazygit/config.yml" "$LAZYGIT_CONFIG_DIR/config.yml"
 
 echo "🏁 Setup complete!"

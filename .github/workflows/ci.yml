@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install zsh and shellcheck
+        run: sudo apt-get update -y && sudo apt-get install -y zsh shellcheck
+      - name: shellcheck install.sh
+        run: shellcheck install.sh
+      - name: zsh syntax check
+        run: zsh -n zsh/.zshrc
+      - name: stylua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check nvim

@@ -3,3 +3,4 @@ tmux/plugins/
 nvim/lazy-lock.json
 nvim/python/
 zsh/private/
+.ruby-lsp/
