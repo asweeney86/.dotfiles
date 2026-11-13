@@ -21,7 +21,7 @@ done
 
 echo "== symlinks into the repo =="
 lazygit_cfg="$(inzsh 'lazygit --print-config-dir' | tr -d '\r')/config.yml"
-for l in ~/.zshrc ~/.tmux.conf ~/.config/nvim ~/.config/ghostty ~/.config/git/config \
+for l in ~/.zshrc ~/.tmux.conf ~/.config/nvim ~/.config/ghostty \
          ~/.config/git/ignore ~/.tool-versions "$lazygit_cfg"; do
     target="$(readlink -f "$l" 2>/dev/null || true)"
     if [[ "$target" == "$DOTFILES"/* ]]; then ok "$l"; else bad "$l -> ${target:-missing}"; fi

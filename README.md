@@ -18,14 +18,15 @@ target is moved to `<target>.bak`.
 | `tmux/` | `~/.tmux`, `~/.tmux.conf` |
 | `nvim/` | `~/.config/nvim` |
 | `ghostty/` | `~/.config/ghostty` |
-| `git/config`, `git/ignore` | `~/.config/git/` |
+| `git/config` | included from the global git config (`include.path`) |
+| `git/ignore` | `~/.config/git/ignore` |
 | `lazygit/config.yml` | lazygit config dir (`lazygit --print-config-dir`) |
 | `asdf/.tool-versions` | `~/.tool-versions` |
 
 ## Local-only config (not tracked)
 
 - `zsh/private/.env.zsh`: API keys and work config. Created empty by `install.sh`.
-- `~/.gitconfig`: identity and machine-specific settings. It overrides `git/config`.
+- Global git config (`~/.gitconfig` or `~/.config/git/config`): identity and Metatron proxy settings. It includes `git/config`; `install.sh` adds the include and never replaces the file.
 
 ## Updating
 

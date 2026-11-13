@@ -281,10 +281,14 @@ link_path "$SCRIPT_DIR/asdf/.tool-versions" ~/.tool-versions
 
 echo "📦 Installing asdf golang"
 asdf plugin add golang https://github.com/asdf-community/asdf-golang.git 2>/dev/null || true
+# refresh so pinned versions released after the plugin was first added resolve
+asdf plugin update golang &>/dev/null || true
 asdf install golang
 
 echo "📦 Installing asdf nodejs"
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
+# refresh so pinned versions released after the plugin was first added resolve
+asdf plugin update nodejs &>/dev/null || true
 asdf install nodejs
 if ! npm ls -g --depth=0 neovim &>/dev/null; then
     npm install -g neovim
@@ -292,6 +296,8 @@ fi
 
 echo "📦 Installing asdf python"
 asdf plugin add python https://github.com/asdf-community/asdf-python.git 2>/dev/null || true
+# refresh so pinned versions released after the plugin was first added resolve
+asdf plugin update python &>/dev/null || true
 asdf install python
 if ! pip show neovim &>/dev/null; then
     pip install neovim
@@ -299,6 +305,8 @@ fi
 
 echo "📦 Installing asdf ruby"
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git 2>/dev/null || true
+# refresh so pinned versions released after the plugin was first added resolve
+asdf plugin update ruby &>/dev/null || true
 asdf install ruby
 if ! gem list -i neovim &>/dev/null; then
     gem install neovim
@@ -321,11 +329,12 @@ link_path "$SCRIPT_DIR/tmux/.tmux.conf" ~/.tmux.conf
 
 echo "📦 Installing tmux tpm"
 if [[ ! -d ~/.tmux/plugins/tpm ]]; then
-    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm \
-        && ~/.tmux/plugins/tpm/bin/install_plugins
+    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 else
     echo "  tpm already exists, skipping"
 fi
+# Always run: picks up plugins added to .tmux.conf since the last install (no-op for installed ones)
+~/.tmux/plugins/tpm/bin/install_plugins
 
 # ── neovim ────────────────────────────────────────────────────────────────────
 
@@ -339,9 +348,16 @@ link_path "$SCRIPT_DIR/ghostty" ~/.config/ghostty
 
 # ── git ───────────────────────────────────────────────────────────────────────
 
-# ~/.gitconfig (identity, Metatron proxy) is left alone; git also reads ~/.config/git/config
+# The global git config (~/.gitconfig or ~/.config/git/config, depending on the machine) can be
+# managed by Metatron and holds identity and proxy settings, so include the tracked config
+# instead of replacing the file.
 echo "📦 Configuring git"
-link_path "$SCRIPT_DIR/git/config" ~/.config/git/config
+if [[ -L ~/.config/git/config && "$(readlink ~/.config/git/config)" == "$SCRIPT_DIR/git/config" ]]; then
+    rm ~/.config/git/config   # leftover from an older version that symlinked it
+fi
+if ! git config --global --get-all include.path | grep -qxF "$SCRIPT_DIR/git/config"; then
+    git config --global --add include.path "$SCRIPT_DIR/git/config"
+fi
 link_path "$SCRIPT_DIR/git/ignore" ~/.config/git/ignore
 
 # ── lazygit ───────────────────────────────────────────────────────────────────
