@@ -48,7 +48,6 @@ elif [[ "$OS" == "Linux" ]]; then
         cpanminus \
         curl \
         fd-find \
-        fzf \
         git \
         git-extras \
         git-lfs \
@@ -86,7 +85,7 @@ elif [[ "$OS" == "Linux" ]]; then
     # neovim — Ubuntu 22.04 apt only has 0.6.1; install/upgrade from GitHub releases
     NVIM_LATEST=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest \
         | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
-    NVIM_CURRENT=$(nvim --version 2>/dev/null | awk 'NR==1{print $2}' | tr -d 'v')
+    NVIM_CURRENT=$(nvim --version 2>/dev/null | awk 'NR==1{print $2}' | tr -d 'v' || true)
     if [[ "$NVIM_CURRENT" != "$NVIM_LATEST" ]]; then
         echo "📦 Installing neovim v${NVIM_LATEST} from GitHub releases (current: ${NVIM_CURRENT:-none})"
         ARCH="$(uname -m)"
@@ -133,6 +132,14 @@ elif [[ "$OS" == "Linux" ]]; then
             "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_${LG_ARCH}.tar.gz"
         tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
         sudo install /tmp/lazygit /usr/local/bin/lazygit
+    fi
+
+    # fzf: apt's is too old for `fzf --zsh` (and slim images omit its shell scripts).
+    # zsh/.zshrc prefers ~/.fzf/bin, so install the release binary there.
+    if [[ ! -x "$HOME/.fzf/bin/fzf" ]]; then
+        echo "📦 Installing fzf"
+        git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+        "$HOME/.fzf/install" --bin
     fi
 
     # delta (git pager; git/config depends on it). Not in Ubuntu 22.04 apt, so use the release .deb
