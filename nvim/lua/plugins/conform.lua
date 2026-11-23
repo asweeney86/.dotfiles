@@ -14,49 +14,45 @@ return {
         desc = "Format Injected Langs",
       },
     },
-    opts = function()
-      ---@type conform.setupOpts
-      local opts = {
-        default_format_opts = {
-          timeout_ms = 3000,
-          async = false, -- not recommended to change
-          quiet = false, -- not recommended to change
-          lsp_format = "fallback", -- not recommended to change
-        },
-        formatters_by_ft = {
-          lua = { "stylua" },
+    opts = function(_, opts)
+      -- Biome when the project has a biome config, otherwise Prettier (from the
+      -- lazyvim.plugins.extras.formatting.prettier extra, which also covers more filetypes).
+      local biome_fts =
+        { "javascript", "javascriptreact", "typescript", "typescriptreact", "json", "jsonc", "css" }
+      opts.formatters_by_ft = opts.formatters_by_ft or {}
+      for _, ft in ipairs(biome_fts) do
+        opts.formatters_by_ft[ft] = { "biome", "prettier", stop_after_first = true }
+      end
 
-          sh = { "shfmt" },
-          python = { "isort", "black" },
-          javascript = { "prettierd", "prettier" },
-          javascriptreact = { "prettierd", "prettier" },
-          typescriptreact = { "prettierd", "prettier" },
-          typescript = { "prettierd", "prettier" },
-          html = { "prettierd", "prettier" },
-          yaml = { "prettierd", "prettier" },
-          json = { "prettierd", "prettier" },
-          css = { "prettierd", "prettier" },
-          markdown = { "prettierd", "prettier" },
-          sql = { "sqlfmt" },
+      opts.formatters_by_ft.lua = { "stylua" }
+      opts.formatters_by_ft.sh = { "shfmt" }
+      opts.formatters_by_ft.python = { "ruff_organize_imports", "ruff_format" }
+      opts.formatters_by_ft.sql = { "sqlfmt" }
+
+      opts.formatters = vim.tbl_deep_extend("force", opts.formatters or {}, {
+        injected = { options = { ignore_errors = true } },
+        biome = {
+          condition = function(_, ctx)
+            return vim.fs.find({ "biome.json", "biome.jsonc", ".biome.json", ".biome.jsonc" }, {
+              path = ctx.filename,
+              upward = true,
+            })[1] ~= nil
+          end,
         },
-        -- The options you set here will be merged with the builtin formatters.
-        -- You can also define any custom formatters here.
-        ---@type table<string, conform.FormatterConfigOverride|fun(bufnr: integer): nil|conform.FormatterConfigOverride>
-        formatters = {
-          injected = { options = { ignore_errors = true } },
-          -- # Example of using dprint only when a dprint.json file is present
-          -- dprint = {
-          --   condition = function(ctx)
-          --     return vim.fs.find({ "dprint.json" }, { path = ctx.filename, upward = true })[1]
-          --   end,
-          -- },
-          --
-          -- # Example of using shfmt with extra args
-          -- shfmt = {
-          --   prepend_args = { "-i", "2", "-ci" },
-          -- },
-        },
-      }
+      })
+      -- Extras each append "prettier"; drop duplicates so it only runs once.
+      for ft, list in pairs(opts.formatters_by_ft) do
+        local seen, out = {}, {}
+        for k, v in pairs(list) do
+          if type(k) ~= "number" then
+            out[k] = v
+          elseif not seen[v] then
+            seen[v] = true
+            out[#out + 1] = v
+          end
+        end
+        opts.formatters_by_ft[ft] = out
+      end
       return opts
     end,
   },

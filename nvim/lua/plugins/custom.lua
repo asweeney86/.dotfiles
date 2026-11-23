@@ -37,9 +37,6 @@ return {
 
       ---@type lspconfig.options
       servers = {
-        omnisharp = {
-          enable_roslyn_analyzers = true,
-        },
         clangd = {
           keys = {
             { "<leader>cR", "<cmd>ClangdSwitchSourceHeader<cr>", desc = "Switch Source/Header (C/C++)" },
