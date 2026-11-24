@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal config for macOS and Ubuntu: zsh, tmux, neovim (LazyVim), ghostty, git, oh-my-posh.
+Personal config for macOS and Ubuntu: zsh, tmux, neovim (LazyVim), ghostty, rex, git, oh-my-posh.
 
 ## Install
 
@@ -18,6 +18,7 @@ target is moved to `<target>.bak`.
 | `tmux/` | `~/.tmux`, `~/.tmux.conf` |
 | `nvim/` | `~/.config/nvim` |
 | `ghostty/` | `~/.config/ghostty` |
+| `rex/` | `~/.config/rex` |
 | `git/config` | included from the global git config (`include.path`) |
 | `git/ignore` | `~/.config/git/ignore` |
 | `lazygit/config.yml` | lazygit config dir (`lazygit --print-config-dir`) |

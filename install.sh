@@ -346,6 +346,11 @@ link_path "$SCRIPT_DIR/nvim" ~/.config/nvim
 echo "📦 Configuring ghostty"
 link_path "$SCRIPT_DIR/ghostty" ~/.config/ghostty
 
+# ── rex ───────────────────────────────────────────────────────────────────────
+
+echo "📦 Configuring rex"
+link_path "$SCRIPT_DIR/rex" ~/.config/rex
+
 # ── git ───────────────────────────────────────────────────────────────────────
 
 # The global git config (~/.gitconfig or ~/.config/git/config, depending on the machine) can be
